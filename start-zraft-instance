@@ -1,0 +1,13 @@
+#!/bin/sh -e
+
+old_pwd="$(pwd)"
+base_dir="$(dirname "$0")"
+cd "$base_dir"
+config="$base_dir/$1.config"
+base_config="$base_dir/dev.config"
+
+cat "$base_config" | sed 's,DATADIR,'"$1"',' > "$config"
+
+erl -sname "$1" -config "$config" -args_file vm.args -pa deps/*/ebin ebin
+
+cd "$old_pwd"
