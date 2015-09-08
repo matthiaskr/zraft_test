@@ -148,7 +148,7 @@ read_value_from_node(ZraftNode, Key) ->
   end.
 
 read_value_from_node_process(ZraftNode, Key, Master) ->
-  case zraft_session:start_link([zraft_node:zraft_name(ZraftNode)], ?TIMEOUT) of
+  case zraft_session:start_link(zraft_node:zraft_name(ZraftNode), ?TIMEOUT) of
     {ok, Session} ->
       Value = read_value_from_node_process_loop(Session, Key),
       Master ! {value, self(), Value},

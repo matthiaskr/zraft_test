@@ -180,4 +180,4 @@ start_zraft_application_on_instance(Node, N) ->
   end.
 
 start_zraft_application() ->
-  {ok, zraft_lib_app:start()}.
+  {ok,zraft_util:start_app(zraft_lib)}.
