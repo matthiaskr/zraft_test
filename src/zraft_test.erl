@@ -123,47 +123,41 @@ write_value_to_cluster([ZraftNode|_]=UpNodes, Key, Value) ->
     _Otherwise -> write_value_to_cluster(UpNodes, Key, Value)
   end.
 
-check_values_in_cluster(UpNodes, Value) ->
-  true = check_value_in_cluster(UpNodes, 1, Value),
-  true = check_value_in_cluster(UpNodes, 2, Value+1).
+check_values_in_cluster(Cluster, Value) ->
+  true = check_value_in_cluster(Cluster, 1, Value),
+  true = check_value_in_cluster(Cluster, 2, Value+1).
 
-check_value_in_cluster(UpNodes, Key, Value) ->
-  [Value || _ <- UpNodes] == read_value_from_cluster(UpNodes, Key).
+check_value_in_cluster(Cluster, Key, Value) ->
+  Value == read_value_from_cluster(Cluster, Key).
 
-read_value_from_cluster(UpNodes, Key) ->
-  [
-    begin
-      io:format("{~p, ~p}...", [Node, Key]),
-      read_value_from_node(Node, Key)
-    end
-  ||
-    Node <- UpNodes
-  ].
+read_value_from_cluster(Cluster, Key) ->
+  io:format("~p...", [Key]),
+  real_read_value_from_cluster(Cluster, Key).
 
-read_value_from_node(ZraftNode, Key) ->
+real_read_value_from_cluster([First|_]=Cluster, Key) ->
   Self = self(),
-  Pid = spawn_link(zraft_node:node(ZraftNode), fun() -> read_value_from_node_process(ZraftNode, Key, Self) end),
+  Pid = spawn_link(zraft_node:node(First), fun() -> read_value_from_cluster_process(Cluster, Key, Self) end),
   receive
     {value, Pid, Value} -> Value
   end.
 
-read_value_from_node_process(ZraftNode, Key, Master) ->
-  case zraft_session:start_link(zraft_node:zraft_name(ZraftNode), ?TIMEOUT) of
+read_value_from_cluster_process(Nodes, Key, Master) ->
+  case zraft_session:start_link([zraft_node:zraft_name(Node) || Node <- Nodes], ?TIMEOUT) of
     {ok, Session} ->
-      Value = read_value_from_node_process_loop(Session, Key),
+      Value = read_value_from_cluster_process_loop(Session, Key),
       Master ! {value, self(), Value},
       ok;
     Otherwise ->
       io:format("got result ~p~n", [Otherwise]),
-      read_value_from_node_process(ZraftNode, Key, Master)
+      read_value_from_cluster_process(Nodes, Key, Master)
   end.
 
-read_value_from_node_process_loop(Session, Key) ->
+read_value_from_cluster_process_loop(Session, Key) ->
   case zraft_session:query(Session, Key, watching, ?TIMEOUT) of
     {ok, Value} ->
       Value;
     {error, timeout} ->
-      read_value_from_node_process_loop(Session, Key);
+      read_value_from_cluster_process_loop(Session, Key);
     Otherwise1 ->
       io:format("got result ~p~n", [Otherwise1]),
       receive
@@ -171,6 +165,6 @@ read_value_from_node_process_loop(Session, Key) ->
           Value;
         Otherwise2 ->
           io:format("got event ~p~n", [Otherwise2]),
-          read_value_from_node_process_loop(Session, Key)
+          read_value_from_cluster_process_loop(Session, Key)
       end
   end.
