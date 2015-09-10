@@ -167,8 +167,11 @@ start_zraft_application_on_instance(Node, 0) ->
   throw({'cannot start zraft application on instance', Node});
 start_zraft_application_on_instance(Node, N) ->
   case rpc:call(Node, ?MODULE, start_zraft_application, []) of
-    {ok, _} ->
+    {ok, ok} ->
       ok;
+    {ok,_} -> %%node does’t ready to start app!!!!
+      timer:sleep(300),
+      start_zraft_application_on_instance(Node, N - 1);
     {error, _} ->
       timer:sleep(300),
       start_zraft_application_on_instance(Node, N - 1);
