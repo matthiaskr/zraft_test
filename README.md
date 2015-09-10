@@ -9,10 +9,9 @@ Please copy (or link) a `rebar` binary to the local directory and run
 ./run
 ```
 
-to start an Erlang instance.  Then you should be able to run
-`zraft_test:run(N, M)` to start the tests.  For example use
-`zraft_test:run(4, 100)`.
-
+to run the test (driven by escript `./runtest`.  You may want to experiment
+various parameters to `zraft_test:run/2` in `main/1` of the `./runtest`
+script.
 
 Play with configuration parameters: change `dev.config`, e.g. reduce the log
 size.

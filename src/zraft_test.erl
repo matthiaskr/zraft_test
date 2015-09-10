@@ -31,11 +31,11 @@ run_commands(_, _, _, _, 0) ->
 run_commands(Cluster, UnusedNodes, UpNodes, Value, CommandsLeft) ->
   io:format(
         "~n~n--------------------------------------------------------------------------------~n~n" ++
-            "Commands left: ~p~nCluster: ~p~nCurrent value: ~p~nChecking values in cluster...",
-        [ CommandsLeft, [ {Node, lists:member(Node, UpNodes)} || Node <- Cluster ], Value ]
+            "[~p] Commands left: ~p~nCluster: ~p~nCurrent value: ~p~nChecking values in cluster...",
+        [os:timestamp(), CommandsLeft, [ {Node, lists:member(Node, UpNodes)} || Node <- Cluster ], Value]
       ),
   check_values_in_cluster(UpNodes, Value),
-  io:format("done~n"),
+  io:format("done (~p)~n", [os:timestamp()]),
   {NewCluster, NewUnusedNodes, NewUpNodes, NewValue} = case random:uniform(10) of
     1 -> add_node_to_cluster(Cluster, UnusedNodes, UpNodes, Value);
     2 -> remove_node_from_cluster(Cluster, UnusedNodes, UpNodes, Value);
@@ -49,7 +49,7 @@ add_node_to_cluster(Cluster, [], UpNodes, Value) ->
   {Cluster, [], UpNodes, Value};
 add_node_to_cluster(Cluster, UnusedNodes, UpNodes, Value) ->
   Node = random_choose(UnusedNodes),
-  io:format("try to add node ~p~n", [Node]),
+  io:format("[~p] try to add node ~p~n", [os:timestamp(), Node]),
   NewCluster = lists:sort([Node|Cluster]),
   case zraft_cluster:switch(NewCluster, Cluster, UpNodes) of
     ok ->
@@ -64,7 +64,7 @@ remove_node_from_cluster(Cluster, UnusedNodes, UpNodes, Value) ->
   case (length(UpNodes) - 1) * 2 > length(Cluster) - 1 of
     true ->
       Node = random_choose(UpNodes),
-      io:format("try to remove node ~p~n", [Node]),
+      io:format("[~p] try to remove node ~p~n", [os:timestamp(), Node]),
       NewCluster = Cluster -- [Node],
       case zraft_cluster:switch(NewCluster, Cluster, UpNodes) of
         ok ->
@@ -84,7 +84,7 @@ boot_node(Cluster, UnusedNodes, UpNodes, Value) ->
       {Cluster, UnusedNodes, UpNodes, Value};
     DownNodes ->
       Node = random_choose(DownNodes),
-      io:format("try to boot node ~p~n", [Node]),
+      io:format("[~p] try to boot node ~p~n", [os:timestamp(), Node]),
       zraft_instance:start_instance(Node),
       {Cluster, UnusedNodes, lists:sort([Node|UpNodes]), Value}
   end.
@@ -93,7 +93,7 @@ halt_node(Cluster, UnusedNodes, UpNodes, Value) ->
   case (length(UpNodes) - 1) * 2 > length(Cluster) of
     true ->
       Node = random_choose(UpNodes),
-      io:format("try to halt node ~p~n", [Node]),
+      io:format("[~p] try to halt node ~p~n", [os:timestamp(), Node]),
       zraft_instance:halt_instance(Node),
       {Cluster, UnusedNodes, UpNodes -- [Node], Value};
     false ->
@@ -131,7 +131,7 @@ check_value_in_cluster(Cluster, Key, Value) ->
   Value == read_value_from_cluster(Cluster, Key).
 
 read_value_from_cluster(Cluster, Key) ->
-  io:format("~p...", [Key]),
+  io:format("~p (~p)...", [Key, os:timestamp()]),
   real_read_value_from_cluster(Cluster, Key).
 
 real_read_value_from_cluster([First|_]=Cluster, Key) ->

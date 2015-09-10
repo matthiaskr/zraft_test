@@ -3,4 +3,4 @@
 ./rebar compile #skip_deps=true
 pkill beam || true
 rm -rf data
-env ZRAFT_NODE_STDOUT=true erl -sname controller -config dev.config -args_file vm.args -pa deps/*/ebin ebin
+env ZRAFT_NODE_STDOUT=true ./runtest
